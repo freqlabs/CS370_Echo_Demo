@@ -3,7 +3,7 @@
     {
       "intent": "StartKnockIntent"
     },
-	{
+    {
       "intent": "WhoDerIntent"
     },
     {
@@ -23,6 +23,12 @@
     },
     {
       "intent": "AMAZON.CancelIntent"
+    },
+    {
+      "intent": "WhatsHappeningIntent"
+    },
+    {
+      "intent": "HappeningTodayIntent"
     }
   ]
 }

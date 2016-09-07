@@ -27,7 +27,9 @@ import com.amazon.speech.speechlet.Speechlet;
 import com.amazon.speech.speechlet.SpeechletException;
 import com.amazon.speech.speechlet.SpeechletResponse;
 import com.amazon.speech.ui.PlainTextOutputSpeech;
+import com.neong.voice.example.HappeningTodayConversation;
 import com.neong.voice.example.KnockKnockConversation;
+import com.neong.voice.example.WhatsHappeningConversation;
 import com.neong.voice.model.base.Conversation;
 
 /**
@@ -63,7 +65,9 @@ public class TemplateBaseSkillSpeechlet implements Speechlet {
         
         
         //TODO EDIT HERE: Add Conversation objects to registry
+        supportedConversations.add(new HappeningTodayConversation());
         supportedConversations.add(new KnockKnockConversation());
+        supportedConversations.add(new WhatsHappeningConversation());
         
         
         //Populate a map of supported intents to conversations for later dispatch

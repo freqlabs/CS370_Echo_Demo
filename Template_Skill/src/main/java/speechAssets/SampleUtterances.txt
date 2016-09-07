@@ -11,7 +11,6 @@ WhoDerIntent who there
 DrWhoIntent doctor who
 DrWhoIntent doctor hoo
 
-//Common Intents
 AMAZON.NoIntent nope
 AMAZON.NoIntent no way
 AMAZON.NoIntent hell no
@@ -24,3 +23,21 @@ AMAZON.YesIntent yes let's
 AMAZON.YesIntent sure
 AMAZON.YesIntent of course
 AMAZON.YesIntent go ahead
+
+WhatsHappeningIntent what happening
+WhatsHappeningIntent what's happening
+WhatsHappeningIntent what is happening
+WhatsHappeningIntent what is going on
+WhatsHappeningIntent what's going to happen
+WhatsHappeningIntent tell me about current events
+
+HappeningTodayIntent what is happening too day
+HappeningTodayIntent what is happening two day
+HappeningTodayIntent what happening today
+HappeningTodayIntent whats happening today
+HappeningTodayIntent what is in my future
+HappeningTodayIntent what will happen today
+HappeningTodayIntent what things are happening today
+HappeningTodayIntent are there any events going on today
+HappeningTodayIntent today is the most interesting day of my life and it has only just begun
+HappeningTodayIntent supposed I wanted to be social today
