@@ -1,6 +1,5 @@
 package com.neong.voice.example
 
-import com.amazon.speech.slu.Intent
 import com.amazon.speech.speechlet.{
   IntentRequest,
   Session,
