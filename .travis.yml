@@ -8,8 +8,9 @@ branches:
     - ssu-calendar
 
 script:
-  - cd Template_Skill && gradle check
-  - cd Template_Skill && gradle fatJar
+  - cd Template_Skill
+  - gradle check
+  - gradle fatJar
 
 before_cache:
   - rm -f  $HOME/.gradle/caches/modules-2/modules-2.lock
