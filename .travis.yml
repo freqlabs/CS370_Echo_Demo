@@ -8,8 +8,8 @@ branches:
     - ssu-calendar
 
 script:
-  - bundle exec cd Template_Skill && bundle exec gradle check
-  - bundle exec cd Template_Skill && bundle exec gradle fatJar
+  - cd Template_Skill && gradle check
+  - cd Template_Skill && gradle fatJar
 
 before_cache:
   - rm -f  $HOME/.gradle/caches/modules-2/modules-2.lock
