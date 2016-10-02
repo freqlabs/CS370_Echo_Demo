@@ -43,6 +43,7 @@ class CalendarConversation extends Conversation {
 object CalendarConversation {
   import java.sql.Timestamp
   import java.time.LocalDateTime
+  import java.time.format.DateTimeFormatter
   import java.util.TimeZone
 
   object ConversationIntent extends Enumeration {
@@ -51,6 +52,7 @@ object CalendarConversation {
   }
 
   private final val PST = TimeZone.getTimeZone("America/Los Angeles")
+  private final val TimeFormatter = DateTimeFormatter.ofPattern("h:mm a")
   private object CalendarDataProvider {
     def nextEventSsml(db: DbConnection): String = {
       val event = db.runQuery(
@@ -66,7 +68,7 @@ object CalendarConversation {
 
       val localDateTime = when.toLocalDateTime.atZone(PST.toZoneId)
       val date = localDateTime.toLocalDate
-      val time = localDateTime.toLocalTime
+      val time = localDateTime.toLocalTime.format(TimeFormatter)
 
       val where = Option(location) match {
         case Some(place) => s"in $place"
