@@ -26,6 +26,7 @@ import org.xml.sax.SAXParseException;
 public class DbConnection {
 
 	private static String dbName;
+	private static String schemaName;
 	private static String username;
 	private static String password;
 	private static String hostName; // The url to the database
@@ -87,6 +88,7 @@ public class DbConnection {
 
 			// Get the appropriate data from the file.
 			dbName = doc.getElementsByTagName("dbName").item(0).getTextContent();
+			schemaName = doc.getElementsByTagName("schemaName").item(0).getTextContent();
 			username = doc.getElementsByTagName("username").item(0).getTextContent();
 			password = doc.getElementsByTagName("password").item(0).getTextContent();
 			hostName = doc.getElementsByTagName("hostName").item(0).getTextContent();
@@ -140,6 +142,7 @@ public class DbConnection {
 		try {
 			Class.forName("org.postgresql.Driver");
 			dbConnection = DriverManager.getConnection(jdbcUrl);
+			dbConnection.setSchema(schemaName);
 
 		// Error handling
 		} catch (ClassNotFoundException e1) {
@@ -152,14 +155,6 @@ public class DbConnection {
 
 		return true;
 
-	}
-
-	/**
-	 * @return true if the database has been connected to, otherwise false if
-	 *         there is not a current connection.
-	 */
-	public static boolean isConnected() {
-		return connected;
 	}
 
 	/**
@@ -182,21 +177,36 @@ public class DbConnection {
 	 *         results if everything went successfully. Otherwise, null.
 	 */
 	public Map<String, Vector<Object>> runQuery(String query) {
-		Map<String, Vector<Object>> resultMap = new HashMap<String, Vector<Object>>();
+		Map<String, Vector<Object>> resultMap = null;
 		try {
-			Statement st = dbConnection.createStatement();
-			ResultSet rawResults = st.executeQuery(query);
+			PreparedStatement st = dbConnection.prepareStatement(
+				query,
+				ResultSet.TYPE_SCROLL_INSENSITIVE,
+				ResultSet.CONCUR_READ_ONLY
+			);
+			ResultSet rawResults = st.executeQuery();
 			ResultSetMetaData rsmd = rawResults.getMetaData();
 
+			// Get the column count and row count to initialize the
+			// collections with the needed capacity.
+
+			int columnCount = rsmd.getColumnCount();
+			resultMap = new HashMap<String, Vector<Object>>(columnCount);
+
+			if (!rawResults.last())
+				return null;
+			int rowCount = rawResults.getRow();
+			rawResults.beforeFirst();
+
 			// Set up all of the keys (column names) with empty vectors as the values.
-			for (int i = 1; i <= rsmd.getColumnCount(); i++) {
+			for (int i = 1; i <= columnCount; i++) {
 				String name = rsmd.getColumnName(i);
-				resultMap.put(name, new Vector<Object>());
+				resultMap.put(name, new Vector<Object>(rowCount));
 			}
 
 			// Push the values into the vectors.
 			while (rawResults.next()) {
-				for (int i = 1; i <= rsmd.getColumnCount(); i++) {
+				for (int i = 1; i <= columnCount; i++) {
 					resultMap.get(rsmd.getColumnName(i)).addElement(rawResults.getObject(i));
 				}
 			}
