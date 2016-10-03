@@ -33,7 +33,7 @@ class CalendarConversation extends Conversation {
       val responseSsml = conversationIntent match {
         case NextEventIntent => CalendarDataProvider.nextEventSsml(db)
       }
-      Conversation.newTellResponse(responseSsml, true)
+      Conversation.newTellResponse(responseSsml.toString, true)
     } else {
       Conversation.newTellResponse("Sorry, I'm on break right now.", false)
     }
@@ -54,17 +54,46 @@ object CalendarConversation {
   private final val PST = TimeZone.getTimeZone("America/Los Angeles")
   private final val TimeFormatter = DateTimeFormatter.ofPattern("h:mm a")
   private object CalendarDataProvider {
-    def nextEventSsml(db: DbConnection): String = {
-      val event = db.runQuery(
-        "SELECT summary, start, name " +
-          "FROM ssucalendar.event_info " +
-          "WHERE start > now() " +
-          "LIMIT 1;"
+    import scala.xml._
+
+    def nextEventSsml(db: DbConnection, limit: Integer = 5): Elem = {
+      val result = db.runQuery(
+        "SELECT count(*), summary, start, name " +
+          "FROM event_info " +
+          "WHERE start = (" +
+            "SELECT start FROM event_info WHERE start > now() LIMIT 1" +
+          ") " +
+          "GROUP BY summary, start, name " +
+          s"LIMIT $limit;"
       )
 
-      val what = event.get("summary").get(0).asInstanceOf[String]
-      val when = event.get("start").get(0).asInstanceOf[Timestamp]
-      val location = event.get("name").get(0).asInstanceOf[String]
+      Option(result) match {
+        case Some(events) => eventsSsml(events, limit)
+        case None => noEventsSsml
+      }
+    }
+
+    private type ResultsMap =
+      java.util.Map[String, java.util.Vector[Object]]
+
+    private val noEventsSsml =
+      <speak>Sorry, there's nothing coming up on the calendar.</speak>
+
+    private def eventsSsml(events: ResultsMap, limit: Int): Elem = {
+      val count = events.get("count").get(0).asInstanceOf[Long].toInt
+      <speak>
+        OK, the next event{if (count > 1) "s are" else " is"}
+        {for (i <- 0 until count) yield eventSsml(events, i)}
+        {if (count > limit)
+          <s>There are {count - limit} more events starting at this time.</s>
+        }
+      </speak>
+    }
+
+    private def eventSsml(events: ResultsMap, index: Int): Elem = {
+      val what = events.get("summary").get(index).asInstanceOf[String]
+      val when = events.get("start").get(index).asInstanceOf[Timestamp]
+      val location = events.get("name").get(index).asInstanceOf[String]
 
       val localDateTime = when.toLocalDateTime.atZone(PST.toZoneId)
       val date = localDateTime.toLocalDate
@@ -75,15 +104,12 @@ object CalendarConversation {
         case None => ". No location specified."
       }
 
-      val ssml =
-        <speak>
-          OK, the next event is {what}
-          on <say-as interpret-as="date" format="md">{date}</say-as>
-          at <say-as interpret-as="time">{time}</say-as>
-          {where}.
-        </speak>
-
-      ssml.toString
+      <s>
+        {what}
+        on <say-as interpret-as="date" format="md">{date}</say-as>
+        at <say-as interpret-as="time">{time}</say-as>
+        {where}
+      </s>
     }
   }
 }
