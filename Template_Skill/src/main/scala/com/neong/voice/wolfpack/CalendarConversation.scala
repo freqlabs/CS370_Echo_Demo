@@ -56,7 +56,7 @@ object CalendarConversation {
   private object CalendarDataProvider {
     import scala.xml._
 
-    def nextEventSsml(db: DbConnection, limit: Integer = 5): Elem = {
+    def nextEventSsml(db: DbConnection, limit: Int = 5): Elem = {
       val result = db.runQuery(
         "SELECT count(*), summary, start, name " +
           "FROM event_info " +
