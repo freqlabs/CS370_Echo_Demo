@@ -51,7 +51,7 @@ object CalendarConversation {
     val NextEventIntent = Value("NextEventIntent")
   }
 
-  private final val PST = TimeZone.getTimeZone("America/Los Angeles")
+  private final val PST = TimeZone.getTimeZone("America/Los_Angeles")
   private final val TimeFormatter = DateTimeFormatter.ofPattern("h:mm a")
   private object CalendarDataProvider {
     import scala.xml._
