@@ -42,18 +42,14 @@ class CalendarConversation extends Conversation {
 
 object CalendarConversation {
   import java.sql.Timestamp
-  import java.time.LocalDateTime
+  import java.time.ZoneId
   import java.time.format.DateTimeFormatter
-  import java.util.TimeZone
 
   object ConversationIntent extends Enumeration {
     type ConversationIntent = Value
     val NextEventIntent = Value("NextEventIntent")
   }
 
-  private final val PST = TimeZone.getTimeZone("America/Los_Angeles")
-  private final val TimeFormatter = DateTimeFormatter.ofPattern("h:mm a")
-  private final val DateFormatter = DateTimeFormatter.ofPattern("????MMdd")
   private object CalendarDataProvider {
     import scala.xml._
 
@@ -74,10 +70,14 @@ object CalendarConversation {
       }
     }
 
-    private type ResultsMap =
-      java.util.Map[String, java.util.Vector[Object]]
+    private final val LocalZone = ZoneId.of("America/Los_Angeles")
+    private final val TimeFormatter = DateTimeFormatter.ofPattern("h:mm a")
+    private final val DateFormatter = DateTimeFormatter.ofPattern("????MMdd")
+    private final val DayFormatter = DateTimeFormatter.ofPattern("EEEE")
 
-    private val noEventsSsml =
+    private type ResultsMap = java.util.Map[String, java.util.Vector[Object]]
+
+    private final val noEventsSsml =
       <speak>Sorry, there's nothing coming up on the calendar.</speak>
 
     private def eventsSsml(events: ResultsMap, limit: Int): Elem = {
@@ -96,20 +96,21 @@ object CalendarConversation {
       val when = events.get("start").get(index).asInstanceOf[Timestamp]
       val location = events.get("name").get(index).asInstanceOf[String]
 
-      val localDateTime = when.toLocalDateTime.atZone(PST.toZoneId)
-      val date = localDateTime.format(DateFormatter)
-      val time = localDateTime.format(TimeFormatter)
+      val dateTime = when.toInstant.atZone(LocalZone)
+      val day = dateTime.format(DayFormatter)
+      val date = dateTime.format(DateFormatter)
+      val time = dateTime.format(TimeFormatter)
 
       val where = Option(location) match {
-        case Some(place) => s"in $place"
-        case None => ". No location specified."
+        case Some(place) => place
+        case None => "Sonoma State University"
       }
 
       <s>
         {what}
-        on <say-as interpret-as="date">{date}</say-as>
+        on {day} <say-as interpret-as="date">{date}</say-as>
         at <say-as interpret-as="time">{time}</say-as>
-        {where}
+        at {where}
       </s>
     }
   }
