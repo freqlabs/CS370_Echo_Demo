@@ -53,6 +53,7 @@ object CalendarConversation {
 
   private final val PST = TimeZone.getTimeZone("America/Los_Angeles")
   private final val TimeFormatter = DateTimeFormatter.ofPattern("h:mm a")
+  private final val DateFormatter = DateTimeFormatter.ofPattern("????MMdd")
   private object CalendarDataProvider {
     import scala.xml._
 
@@ -96,8 +97,8 @@ object CalendarConversation {
       val location = events.get("name").get(index).asInstanceOf[String]
 
       val localDateTime = when.toLocalDateTime.atZone(PST.toZoneId)
-      val date = localDateTime.toLocalDate
-      val time = localDateTime.toLocalTime.format(TimeFormatter)
+      val date = localDateTime.format(DateFormatter)
+      val time = localDateTime.format(TimeFormatter)
 
       val where = Option(location) match {
         case Some(place) => s"in $place"
@@ -106,7 +107,7 @@ object CalendarConversation {
 
       <s>
         {what}
-        on <say-as interpret-as="date" format="md">{date}</say-as>
+        on <say-as interpret-as="date">{date}</say-as>
         at <say-as interpret-as="time">{time}</say-as>
         {where}
       </s>
