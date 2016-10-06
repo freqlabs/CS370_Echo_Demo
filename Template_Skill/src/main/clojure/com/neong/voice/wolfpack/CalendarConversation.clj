@@ -46,7 +46,7 @@
   (str "<speak>" content "</speak>"))
 
 (defn say-as [interpret-as content]
-  (str "<say-as interpret-as\"" interpret-as "\">" content "</say-as>"))
+  (str "<say-as interpret-as=\"" interpret-as "\">" content "</say-as>"))
 
 ;;(defn section [content]
 ;;  (str "<s>" content "</s>"))
