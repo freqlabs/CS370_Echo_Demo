@@ -21,11 +21,15 @@
 ;;
 
 (def zone-id (ZoneId/of "America/Los_Angeles"))
+(def day-formatter (DateTimeFormatter/ofPattern "EEEE"))
 (def date-formatter (DateTimeFormatter/ofPattern "????MMdd"))
 (def time-formatter (DateTimeFormatter/ofPattern "h:mm a"))
 
 (defn at-zone [when]
   (.atZone (.toInstant when) zone-id))
+
+(defn format-day [when]
+  (.format when day-formatter))
 
 (defn format-date [when]
   (.format when date-formatter))
@@ -50,11 +54,12 @@
 (defn format-calendar-response
   [what when where]
   (let [zoned (at-zone when)
+        day (format-day zoned)
         date (format-date zoned)
         time (format-time zoned)]
     (speak
      (str "Okay, the next event is " what
-          " on " (say-as "date" date)
+          " on " day " " (say-as "date" date)
           " at " (say-as "time" time)
           ", at " where "."))))
 
