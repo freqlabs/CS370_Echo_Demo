@@ -5,13 +5,4 @@ jdk:
 
 script:
   - cd Template_Skill
-  - gradle check
-  - gradle fatJar
-
-before_cache:
-  - rm -f  $HOME/.gradle/caches/modules-2/modules-2.lock
-  - rm -fr $HOME/.gradle/caches/*/plugin-resolution/
-cache:
-  directories:
-    - $HOME/.gradle/caches/
-    - $HOME/.gradle/wrapper/
+  - lein uberjar

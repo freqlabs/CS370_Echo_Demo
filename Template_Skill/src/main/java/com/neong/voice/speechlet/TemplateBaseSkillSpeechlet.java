@@ -28,20 +28,19 @@ import com.amazon.speech.speechlet.SpeechletException;
 import com.amazon.speech.speechlet.SpeechletResponse;
 import com.amazon.speech.ui.PlainTextOutputSpeech;
 import com.neong.voice.wolfpack.CalendarConversation;
-import com.neong.voice.example.KnockKnockConversation;
 import com.neong.voice.model.base.Conversation;
 
 /**
  * This TemplateBaseSkillSpeechlet class functions as a "dispatcher" that passes Intents
  * to the proper Conversation object that supports it. You should only need to add a new
- * instance of your custom Conversation objects to the supportedConversations[] List in the 
+ * instance of your custom Conversation objects to the supportedConversations[] List in the
  * onSessionStarted() method.
- * 
+ *
  * NOTE: You should not need to edit anything else within this class file, except noted above.
- * 
+ *
  * @author Jeffrey Neong
  * @version 1.0
- * 
+ *
  */
 
 public class TemplateBaseSkillSpeechlet implements Speechlet {
@@ -50,33 +49,32 @@ public class TemplateBaseSkillSpeechlet implements Speechlet {
 
     //Add a new instance of your Conversation to this List in the onSessionStarted method below
     List<Conversation> supportedConversations = new ArrayList<Conversation>();
-    
+
     //Populated from supportedConversations List
     Map<String,Conversation> supportedIntentsByConversation = new HashMap<String,Conversation>();
-        
-    
+
+
     @Override
     public void onSessionStarted(final SessionStartedRequest request, final Session session)
             throws SpeechletException {
         log.info("onSessionStarted requestId={}, sessionId={}", request.getRequestId(),
                 session.getSessionId());
         //All session initialization goes here - Beginning of lifecycle
-        
-        
+
+
         //TODO EDIT HERE: Add Conversation objects to registry
-        supportedConversations.add(new KnockKnockConversation());
         supportedConversations.add(new CalendarConversation());
-        
-        
+
+
         //Populate a map of supported intents to conversations for later dispatch
         for(Conversation convo : supportedConversations) {
-        	for(String intentName : convo.getSupportedIntentNames()) {
-        		supportedIntentsByConversation.put(intentName, convo);
-        	}
+            for(String intentName : convo.getSupportedIntentNames()) {
+                supportedIntentsByConversation.put(intentName, convo);
+            }
         }
     }
 
-    
+
     //This method is called if the skill is invoked with a "start" intent
     @Override
     public SpeechletResponse onLaunch(final LaunchRequest request, final Session session)
@@ -87,11 +85,11 @@ public class TemplateBaseSkillSpeechlet implements Speechlet {
         String welcomeStr = "Welcome to Template test skill. Try asking me things.";
         PlainTextOutputSpeech outputSpeech = new PlainTextOutputSpeech();
         outputSpeech.setText(welcomeStr);
-        
+
         return SpeechletResponse.newTellResponse(outputSpeech);
     }
 
-    
+
     //This method is called to service any known intents defined in your voice interaction model
     @Override
     public SpeechletResponse onIntent(final IntentRequest request, final Session session)
@@ -102,16 +100,16 @@ public class TemplateBaseSkillSpeechlet implements Speechlet {
         SpeechletResponse response = null;
         Intent intent = request.getIntent();
         String intentName = (intent != null) ? intent.getName() : null;
-        
+
         //Check for convo handling
         Conversation convo = getConvoForIntent(intentName);
         if(convo != null) {
-        	response = convo.respondToIntentRequest(request, session);
+            response = convo.respondToIntentRequest(request, session);
         }
         else {
             throw new SpeechletException("Invalid Intent");
         }
-        
+
         return response;
     }
 
@@ -127,14 +125,14 @@ public class TemplateBaseSkillSpeechlet implements Speechlet {
 
 
     private Conversation getConvoForIntent(String intentName) {
-    	Conversation convo = null;
-		//Get a new instance of a proper conversation. 
-    	//TODO: Filter out common answers so they do not create an erroneously new convo that is ambiguous.
-    	convo = supportedIntentsByConversation.get(intentName);
-    	if(convo == null) {
-    		log.error("Cannot find a Conversation object that supports intent name "+intentName);
-    	}
-    	return convo;
+        Conversation convo = null;
+        //Get a new instance of a proper conversation.
+        //TODO: Filter out common answers so they do not create an erroneously new convo that is ambiguous.
+        convo = supportedIntentsByConversation.get(intentName);
+        if(convo == null) {
+            log.error("Cannot find a Conversation object that supports intent name "+intentName);
+        }
+        return convo;
     }
 
 }
