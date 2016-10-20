@@ -50,7 +50,7 @@ public class CalendarConversation extends Conversation {
 
 	private SpeechletResponse handleNextEventIntent(IntentRequest intentReq, Session session) {
 		Map<String, Vector<Object>> results =
-				db.runQuery("SELECT * FROM ssucalendar.event_info WHERE start > now() LIMIT 1;");
+				db.runQuery("SELECT * FROM event_info WHERE start > now() LIMIT 1;");
 
 		if (results == null)
 			return newTellResponse("Sorry, I'm on break", false);
