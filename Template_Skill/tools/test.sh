@@ -1,6 +1,10 @@
 #!/bin/sh
 
-curl -k https://localhost:8443/Template_Skill/ssunews --data-binary '
+gradle appStart &
+
+until echo exit | nc localhost 8080; do sleep 5; done
+
+curl -s http://localhost:8080/Template_Skill/ssunews --data-binary '
 {
     "session": {
         "sessionId": "SessionId.SOMEUUID",
@@ -25,4 +29,6 @@ curl -k https://localhost:8443/Template_Skill/ssunews --data-binary '
     },
     "version": "1.0"
 }
-' 2>/dev/null | json_pp
+' | json_pp
+
+gradle appStop

@@ -31,7 +31,5 @@ dependencies {
 }
 
 gretty {
-    httpEnabled = false
-    httpsEnabled = true
-    jvmArgs = ['-Dcom.amazon.speech.speechlet.servlet.disableRequestSignatureCheck=true', '-Xdebug', '-Xnoagent']
+    jvmArgs = ['-Dcom.amazon.speech.speechlet.servlet.disableRequestSignatureCheck=true']
 }
