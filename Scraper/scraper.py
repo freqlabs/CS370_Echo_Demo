@@ -204,6 +204,7 @@ def get_record(event):
         "location": getter("location"),
         "start": getter("dtstart"),
         "end": getter("dtend"),
+        "event_uid": getter("uid"),
 
         "event_type": custom_getter(12),
         "website_url": custom_getter(3109),
@@ -507,13 +508,51 @@ INSERT INTO event_categories(event_id, category_id)
     cursor.executemany(statement, values)
 
 
+def insert_event_uid(cursor, event):
+    statement = \
+"""
+WITH event(id) AS (
+    SELECT event_id FROM events
+    WHERE summary = %(summary)s AND start = %(start)s
+)
+INSERT INTO calendar_event_ids(event_id, event_uid)
+    SELECT event.id, %(event_uid)s FROM event
+    ON CONFLICT DO NOTHING;
+"""
+    cursor.execute(statement, event)
+
+
+def check_event_exists(cursor, event):
+    statement = \
+"""
+SELECT event_id FROM calendar_event_ids
+    WHERE event_uid = %(event_uid)s
+"""
+    cursor.execute(statement, event)
+    results = cursor.fetchall()
+
+    return len(results) > 0
+
+
 #
 # Database manipulation
 #
 
 def populate_database(cursor):
+    # The parameter cursor is an object that allows us to execute commands
+    # in a database session.
+    # See http://initd.org/psycopg/docs/cursor.html
+
     for record in get_records(CALENDAR_URLS):
-        sys.stdout.write('.')
+        # Show a . to indicate progress to the user when run as a script.
+        if __name__ == "__main__":
+            sys.stdout.write('.')
+            sys.stdout.flush()
+
+        # Skip existing events.
+        if check_event_exists(cursor, record):
+            continue
+
         if has_contact_info(record):
             insert_contact(cursor, record)
         if has_location(record):
@@ -522,7 +561,9 @@ def populate_database(cursor):
         insert_categories(cursor, record)
         insert_event(cursor, record)
         insert_event_categories(cursor, record)
+        insert_event_uid(cursor, record)
 
+    print("\nok")
 
 #
 # AWS Lambda event handler
