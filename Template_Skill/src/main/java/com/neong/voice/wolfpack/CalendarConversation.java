@@ -9,10 +9,14 @@ import com.wolfpack.database.DbConnection;
 import com.neong.voice.wolfpack.CalendarHelper;
 import com.neong.voice.wolfpack.CalendarHelper.EventField;
 import com.neong.voice.wolfpack.CosineSim;
+import com.neong.voice.wolfpack.DateManip;
 
+import java.sql.Date;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Timestamp;
+
+import java.text.DateFormat;
 
 import java.util.*;
 
@@ -42,6 +46,8 @@ public class CalendarConversation extends Conversation {
 
 	// Other constants
 	private final static int MAX_EVENTS = 5;
+	private final static TimeZone LOCAL_TIMEZONE = SimpleTimeZone.getTimeZone(CalendarHelper.TIME_ZONE);
+	private final static Calendar.Builder LOCAL_CALENDAR = Calendar.Builder().setTimeZone(LOCAL_TIMEZONE);
 
 	private DbConnection db;
 
@@ -112,7 +118,7 @@ public class CalendarConversation extends Conversation {
 	 */
 	private SpeechletResponse handleStateSensitiveIntents(IntentRequest intentReq, Session session) {
 		SpeechletResponse response;
-		SessionState state = (SessionState) session.getAttribute(ATTRIB_STATEID);
+		SessionState state = SessionState.valueOf(session.getAttribute(ATTRIB_STATEID).toString());
 
 		if (state == null)
 			state = SessionState.NEW_SESSION;
@@ -189,11 +195,11 @@ public class CalendarConversation extends Conversation {
 			break;
 
 		case INTENT_LECTURESCATEGORY:
-			category = "Films and Lectures";
+			category = "Lectures and Films";
 			break;
 
 		case INTENT_CLUBSCATEGORY:
-			category = "Club and Organization";
+			category = "Club and Student Organizations";
 			break;
 
 		default:
@@ -212,9 +218,9 @@ public class CalendarConversation extends Conversation {
 		if (results == null)
 			return newInternalErrorResponse();
 
-		EventField[] fields = { EventField.SUMMARY, EventField.DATE, EventField.TIME };
+		EventField[] fields = { EventField.SUMMARY, EventField.START_DATE, EventField.START_TIME };
 		String eventSsml = CalendarHelper.formatEventSsml(0, results, fields);
-		String responseSsml = "The next event is " + eventSsml + ".";
+		String responseSsml = "The next event is " + eventSsml;
 		String repromptSsml = "Is there anything you would like to know about this event?";
 
 		return newAffirmativeResponse(responseSsml, repromptSsml);
@@ -224,18 +230,25 @@ public class CalendarConversation extends Conversation {
 	private SpeechletResponse handleGetEventsOnDateIntent(IntentRequest intentReq, Session session) {
 		SpeechletResponse response;
 
-		Intent theIntent = intentReq.getIntent();
-		String givenDate = theIntent.getSlot(SLOT_AMAZON_DATE).getValue();
+		Slot dateSlot = intentReq.getIntent().getSlot(SLOT_AMAZON_DATE);
+		String givenDate;
+
+		if (dateSlot == null || (givenDate = dateSlot.getValue()) == null)
+			return newBadSlotResponse("date");
+
+		DateRange dateRange = new DateRange(givenDate);
 
 		// Select all events on the same day as the givenDate.
 		Map<String, Vector<Object>> results;
 
 		try {
-			String query = "SELECT * FROM event_info " +
-				"WHERE date_trunc('day', start) = ?::date";
+			String query = "SELECT event_id, summary, start, location FROM event_info " +
+				"WHERE date_trunc(?, start) = date_trunc(?, ?)";
 
 			PreparedStatement ps = db.prepareStatement(query);
-			ps.setString(1, givenDate);
+			ps.setString(1, dateRange.getRange());
+			ps.setString(2, dateRange.getRange());
+			ps.setDate(3, dateRange.getDate());
 
 			results = db.executeStatement(ps);
 		} catch (SQLException e) {
@@ -251,10 +264,10 @@ public class CalendarConversation extends Conversation {
 
 		// If there were not any events on the given day:
 		if (numEvents == 0) {
-			Timestamp ts = Timestamp.valueOf(givenDate);
-			String dateSsml = CalendarHelper.formatDateSsml(ts);
-			String responseSsml = "I couldn't find any events on" + dateSsml + ".";
+			String dateSsml = dateRange.getSsml();
+			String responseSsml = "I couldn't find any events on " + dateSsml + ".";
 			String repromptSsml = "Can I help you find another event?";
+
 			return newFailureResponse(responseSsml, repromptSsml);
 		}
 
@@ -270,13 +283,11 @@ public class CalendarConversation extends Conversation {
 			}
 
 			session.setAttribute(ATTRIB_RECENTLYSAIDEVENTS, savedEventNames);
-			session.setAttribute(ATTRIB_SAVEDDATE, start);
 			session.setAttribute(ATTRIB_STATEID, SessionState.USER_HEARD_EVENTS);
 
-			response = newEventListResponse(results, start);
+			response = newEventListResponse(results, dateRange.getDate());
 		} else { // more than MAX_EVENTS
 			session.setAttribute(ATTRIB_STATEID, SessionState.LIST_TOO_LONG);
-			session.setAttribute(ATTRIB_SAVEDDATE, start);
 
 			String responseSsml = "I was able to find " + numEvents + " different events. " +
 				"What kind of events would you like to hear about?";
@@ -286,31 +297,35 @@ public class CalendarConversation extends Conversation {
 			response = newAffirmativeResponse(responseSsml, repromptSsml);
 		}
 
+		session.setAttribute(ATTRIB_SAVEDDATE, dateRange);
+
 		return response;
 	}
 
 
 	private SpeechletResponse handleNarrowDownIntent(IntentRequest intentReq, Session session, String category) {
-		Timestamp start = (Timestamp) session.getAttribute(ATTRIB_SAVEDDATE);
+		DateRange dateRange = (DateRange) session.getAttribute(ATTRIB_SAVEDDATE);
 
 		// This should never happen.
-		if (start == null)
+		if (dateRange == null)
 			return newBadStateResponse();
 
 		// Return the name and the time of all events within that category, or if
 		// the query finds that there are no events on the day, Alexa tells the user
 		// she has nothing to return.
-		String query;
 		Map<String, Vector<Object>> results;
 
-		if (category == "all") {
-			query = "SELECT event_id, summary, start FROM event_info " +
-				"WHERE ('" + start + "' <= start) " +
-				"AND ('" + start + "'::date + integer '1') > start;";
-		} else {
-			query = "SELECT event_id, summary, start " +
-				"FROM given_category('" + category + "', '" + start + "', 1::smallint);";
-		}
+		try {
+			if (category == "all") {
+				String query = "SELECT event_id, summary, start FROM event_info " +
+					"WHERE (?, ?) OVERLAPS (date_trunc('day', start), INTERVAL '1 day')";
+				PreparedStatement ps = db.prepareStatement(query);
+				ps.setDate(1, dateRange.getDate());
+				ps.setInt(2, dateRange.get
+			} else {
+				String query = "SELECT event_id, summary, start " +
+					"FROM given_category('" + category + "', '" + start + "', 1::smallint);";
+			}
 
 		results = db.runQuery(query);
 
@@ -432,10 +447,10 @@ public class CalendarConversation extends Conversation {
 	/**
 	 * Generic response for a list of events on a given date
 	 */
-	private static SpeechletResponse newEventListResponse(Map<String, Vector<Object>> results,
+h	private static SpeechletResponse newEventListResponse(Map<String, Vector<Object>> results,
 	                                                      Timestamp when) {
-		EventField[] fields = { EventField.SUMMARY, EventField.TIME };
-		String dateSsml = CalendarHelper.formatDateSsml(when);
+		EventField[] fields = { EventField.SUMMARY, EventField.START_TIME };
+		String dateSsml = CalendarHelper.formatDateSsmlNoZone(when);
 		String eventsSsml = CalendarHelper.listEvents(results, fields);
 		String responseSsml = "The events on " + dateSsml + " are: " + eventsSsml;
 		String repromptSsml = "Is there anything you would like to know about those events?";
@@ -445,9 +460,20 @@ public class CalendarConversation extends Conversation {
 
 
 	/**
-	 * Generic response for when we have no information about the requested item.
+	 * Generic response for when we have no information about the requested item
 	 */
 	private static SpeechletResponse newNoInfoResponse(String messageSsml) {
+		return newFailureResponse(messageSsml, "Did you want any other information?");
+	}
+
+
+	/**
+	 * Generic response for when we are missing a needed slot
+	 */
+	private static SpeechletResponse newBadSlotResponse(String slotName) {
+		// FIXME: needs better messages?
+		String messageSsml = "Which " + slotName + " are you interested in?";
+
 		return newFailureResponse(messageSsml, "Did you want any other information?");
 	}
 

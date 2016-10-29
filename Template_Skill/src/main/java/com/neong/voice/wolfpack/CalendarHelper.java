@@ -1,7 +1,10 @@
 package com.neong.voice.wolfpack;
 
+import java.sql.PreparedStatement;
+import java.sql.SQLException;
 import java.sql.Timestamp;
-import java.time.ZoneId;
+import java.sql.ZoneId;
+import java.text.SimpleDateFormat;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Map;
@@ -9,12 +12,14 @@ import java.util.Vector;
 
 
 public class CalendarHelper {
+	public static final String TIME_ZONE = "America/Los_Angeles";
+
 	private static final DateTimeFormatter DAY_FORMATTER = DateTimeFormatter.ofPattern("EEEE");
 	private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("????MMdd");
 	private static final DateTimeFormatter TIME_FORMATTER = DateTimeFormatter.ofPattern("h:mm a");
-	private static final ZoneId PST_ZONEID = ZoneId.of("America/Los_Angeles");
+	private static final ZoneId LOCAL_ZONEID = ZoneId.of(TIME_ZONE);
 
-	public enum EventField { DATE, TIME, SUMMARY, LOCATION };
+	public enum EventField { START_DATE, START_TIME, SUMMARY, LOCATION };
 
 
 	public static boolean isCategorySupported(String category) {
@@ -23,8 +28,8 @@ public class CalendarHelper {
 			"LecturesCategoryIntent",  "ClubsCategoryIntent"
 		};
 
-		for (int i = 0; i < 4; i++)
-			if (category == supportedCategories[i])
+		for (String cat : supportedCategories)
+			if (cat == category)
 				return true;
 
 		return false;
@@ -41,13 +46,13 @@ public class CalendarHelper {
 				ssml += summary;
 				break;
 
-			case DATE: {
+			case START_DATE: {
 				final Timestamp start = (Timestamp) events.get("start").get(index);
 				ssml += "on " + formatDateSsml(start);
 				break;
 			}
 
-			case TIME: {
+			case START_TIME: {
 				final Timestamp start = (Timestamp) events.get("start").get(index);
 				ssml += "at " + formatTimeSsml(start);
 				break;
@@ -72,7 +77,7 @@ public class CalendarHelper {
 
 
 	public static String formatDateSsml(Timestamp when) {
-		final ZonedDateTime zonedDateTime = when.toInstant().atZone(PST_ZONEID);
+		final ZonedDateTime zonedDateTime = when.toInstant().atZone(LOCAL_ZONEID);
 		final String day = zonedDateTime.format(DAY_FORMATTER);
 		final String date = zonedDateTime.format(DATE_FORMATTER);
 
@@ -81,7 +86,7 @@ public class CalendarHelper {
 
 
 	public static String formatTimeSsml(Timestamp when) {
-		final ZonedDateTime zonedDateTime = when.toInstant().atZone(PST_ZONEID);
+		final ZonedDateTime zonedDateTime = when.toInstant().atZone(LOCAL_ZONEID);
 		final String time = zonedDateTime.format(TIME_FORMATTER);
 
 		return "<say-as interpret-as=\"time\">" + time + "</say-as>";
