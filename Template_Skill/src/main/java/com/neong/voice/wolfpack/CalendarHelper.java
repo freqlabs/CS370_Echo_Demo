@@ -3,10 +3,12 @@ package com.neong.voice.wolfpack;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Timestamp;
-import java.sql.ZoneId;
-import java.text.SimpleDateFormat;
+
 import java.time.ZonedDateTime;
+import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
+
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Vector;
 
@@ -19,7 +21,9 @@ public class CalendarHelper {
 	private static final DateTimeFormatter TIME_FORMATTER = DateTimeFormatter.ofPattern("h:mm a");
 	private static final ZoneId LOCAL_ZONEID = ZoneId.of(TIME_ZONE);
 
-	public enum EventField { START_DATE, START_TIME, SUMMARY, LOCATION };
+	public enum EventField {
+		START_DATE, START_TIME, END_TIME, SUMMARY, LOCATION, GENERAL_ADMISSION
+	};
 
 
 	public static boolean isCategorySupported(String category) {
@@ -58,9 +62,19 @@ public class CalendarHelper {
 				break;
 			}
 
+			case END_TIME:
+				final Timestamp end = (Timestamp) events.get("end").get(index);
+				ssml += "ends at " + formatTimeSsml(end);
+				break;
+
 			case LOCATION:
 				final String location = (String) events.get("location").get(index);
 				ssml += "at " + location;
+				break;
+
+			case GENERAL_ADMISSION:
+				final String fee = (String) events.get("general_admission_fee").get(index);
+				ssml += "the general admission fee is " + formatFeeSsml(fee);
 				break;
 
 			default:
@@ -101,6 +115,14 @@ public class CalendarHelper {
 	}
 
 
+	public static String formatFeeSsml(String fee) {
+		if (fee == null)
+			fee = "not specified";
+
+		return fee.replace("-", " to ");
+	}
+
+
 	public static String listEvents(Map<String, Vector<Object>> events, EventField[] fields) {
 		String response = "";
 
@@ -110,5 +132,18 @@ public class CalendarHelper {
 			response += formatEventSsml(i, events, fields);
 
 		return response;
+	}
+
+
+	public static Map<String, Integer> extractEventIds(Map<String, Vector<Object>> events, int numEvents) {
+		Map<String, Integer> savedEvents = new HashMap<String, Integer>(numEvents);
+
+		for (int i = 0; i < numEvents; i++) {
+			String key = events.get("summary").get(i).toString();
+			Integer value = (Integer) events.get("event_id").get(i);
+			savedEvents.put(key, value);
+		}
+
+		return savedEvents;
 	}
 }
