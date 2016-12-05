@@ -27,7 +27,7 @@ import com.amazon.speech.speechlet.Speechlet;
 import com.amazon.speech.speechlet.SpeechletException;
 import com.amazon.speech.speechlet.SpeechletResponse;
 import com.amazon.speech.ui.PlainTextOutputSpeech;
-import com.neong.voice.wolfpack.CalendarConversation;
+import com.wolfpack.voice.CalendarConversation;
 import com.neong.voice.model.base.Conversation;
 
 /**

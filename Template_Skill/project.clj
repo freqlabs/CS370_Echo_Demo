@@ -1,10 +1,13 @@
 (defproject Template_Skill "1.0"
   :description "An Amazon Alexa skill for Sonoma State University"
   :min-lein-version "2.0.0"
-  :dependencies [[org.postgresql/postgresql "9.4.1211"]
+  :dependencies [[clojure.java-time "0.2.2"]
                  [com.amazon.alexa/alexa-skills-kit "1.1.3"]
                  [com.amazonaws/aws-lambda-java-core "1.1.0"]
-                 [org.clojure/clojure "1.8.0"]]
+                 [org.clojure/clojure "1.8.0"]
+                 [org.clojure/java.jdbc "0.6.2-alpha3"]
+                 [org.postgresql/postgresql "9.4.1212"]
+                 [org.threeten/threeten-extra "0.9"]]
   :repositories [["jcenter" {:url "http://jcenter.bintray.com"}]]
   :plugins [[lein-pprint "1.1.2"]]
 
@@ -21,7 +24,6 @@
 
   :profiles {:firstpass-c {:prep-tasks ^:replace []
                            :source-paths ^:replace ["src/main/clojure"]
-                           :aot [com.neong.voice.wolfpack.CalendarConversation]}
+                           :aot [com.wolfpack.voice.CalendarConversation]}
              :firstpass-j {:prep-tasks ^:replace []
-                           :java-source-paths ^:replace ["src/main/java/com/neong/voice/model"
-                                                         "src/main/java/com/wolfpack"]}})
+                           :java-source-paths ^:replace ["src/main/java/com/neong/voice/model"]}})
